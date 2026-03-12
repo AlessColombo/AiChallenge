@@ -1,4 +1,5 @@
 import os
+import argparse
 
 from strands.types.exceptions import MaxTokensReachedException
 
@@ -14,9 +15,10 @@ from .runner import run_llm_call
 from .tools import normalize_ids_text, solve_ids_for_dataset, write_result_file
 
 
-def _save_session_id(session_id: str) -> None:
-    session_file = os.path.join(os.path.dirname(__file__), "session_id.txt")
+def _save_session_id(session_id: str, output_dir: str) -> None:
+    session_file = os.path.join(output_dir, "session_id.txt")
     try:
+        os.makedirs(output_dir, exist_ok=True)
         with open(session_file, "w", encoding="utf-8") as f:
             f.write(session_id)
         print(f"Session ID saved to {session_file}")
@@ -32,7 +34,26 @@ def _prompt_for_solver() -> str:
     )
 
 
-def _parse_dataset_dirs() -> list[str]:
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Run the solver on one dataset directory or on configured ones."
+    )
+    parser.add_argument(
+        "--data-dir",
+        default="",
+        help="Process only this dataset directory.",
+    )
+    return parser.parse_args()
+
+
+def _parse_dataset_dirs(cli_data_dir: str = "") -> list[str]:
+    if cli_data_dir.strip():
+        return [os.path.abspath(cli_data_dir)]
+
+    # If DATA_DIR is explicitly set, prefer single-dataset mode.
+    if os.getenv("DATA_DIR"):
+        return [DATA_DIR]
+
     if DATA_DIRS.strip():
         raw_dirs = [chunk.strip() for chunk in DATA_DIRS.split(",")]
         dirs = [os.path.abspath(d) for d in raw_dirs if d]
@@ -42,14 +63,14 @@ def _parse_dataset_dirs() -> list[str]:
 
 
 def main():
-    dataset_dirs = _parse_dataset_dirs()
+    args = _parse_args()
+    dataset_dirs = _parse_dataset_dirs(args.data_dir)
     print("Using dataset directories:")
     for d in dataset_dirs:
         print(f"- {d}")
 
     session_id = generate_session_id()
     print(f"Session ID: {session_id}")
-    _save_session_id(session_id)
 
     for dataset_dir in dataset_dirs:
         print(f"\nProcessing dataset: {dataset_dir}")
@@ -76,6 +97,7 @@ def main():
             used_fallback = True
 
         output_path = write_result_file(ids, dataset_dir, RESULT_FILENAME)
+        _save_session_id(session_id, os.path.dirname(output_path))
         print(f"Result file written: {output_path}")
         print(f"IDs written ({len(ids)}): {', '.join(ids)}")
         if used_fallback:
