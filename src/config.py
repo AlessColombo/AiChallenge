@@ -1,7 +1,5 @@
 import os
 from dotenv import load_dotenv
-from langfuse import Langfuse
-import ulid
 
 from strands.models.openai import OpenAIModel
 
@@ -35,17 +33,3 @@ def make_model():
     )
 
 model = make_model()
-
-# ------------ Langfuse client ------------
-langfuse_client = Langfuse(
-    public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-    secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-    host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
-)
-
-
-# ------------ utilities ------------
-
-def generate_session_id() -> str:
-    """Create a unique session identifier using TEAM_NAME and an ULID."""
-    return f"{os.getenv('TEAM_NAME', 'tutorial')}-{ulid.new().str}"
