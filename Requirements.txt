@@ -1,0 +1,9 @@
+venv\Scripts\activate 
+
+python -m pip install openai strands-agents strands-agents-tools langfuse python-dotenv ulid-py
+
+# example invocations once the package is organised
+# from the workspace root:
+#
+#   python -m src.app          # run the travel planners
+#   python -m src.trace_checker  # inspect traces (reads session_id.txt)
